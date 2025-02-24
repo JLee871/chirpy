@@ -29,9 +29,12 @@ func readyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	const filepathRoot = "."
+	const port = "8080"
+
 	serverMutex := http.NewServeMux()
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + port,
 		Handler: serverMutex,
 	}
 
@@ -49,23 +52,22 @@ func main() {
 	apiCfg.databaseQueries = dbQueries
 	apiCfg.platform = os.Getenv("PLATFORM")
 
-	sH := http.StripPrefix("/app/", http.FileServer(http.Dir(".")))
+	sH := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
 	serverMutex.Handle("/app/", apiCfg.middlewareMetricsInc(sH))
 
-	rH := http.HandlerFunc(readyHandler)
-	serverMutex.Handle("GET /api/healthz", rH)
+	serverMutex.HandleFunc("GET /api/healthz", readyHandler)
 
-	cH := http.HandlerFunc(apiCfg.countHandler)
-	serverMutex.Handle("GET /admin/metrics", cH)
+	serverMutex.HandleFunc("GET /admin/metrics", apiCfg.countHandler)
 
-	resetH := http.HandlerFunc(apiCfg.resetHandler)
-	serverMutex.Handle("POST /admin/reset", resetH)
+	serverMutex.HandleFunc("POST /admin/reset", apiCfg.resetHandler)
 
-	chirpH := http.HandlerFunc(apiCfg.chirpHandler)
-	serverMutex.Handle("POST /api/chirps", chirpH)
+	serverMutex.HandleFunc("POST /api/chirps", apiCfg.postchirpHandler)
+	serverMutex.HandleFunc("GET /api/chirps", apiCfg.getallchirpsHandler)
+	serverMutex.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getsinglechirpHandler)
 
-	userH := http.HandlerFunc(apiCfg.userHandler)
-	serverMutex.Handle("POST /api/users", userH)
+	serverMutex.HandleFunc("POST /api/users", apiCfg.postuserHandler)
+
+	serverMutex.HandleFunc("POST /api/login", apiCfg.loginHandler)
 
 	log.Fatal(server.ListenAndServe())
 }

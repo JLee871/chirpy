@@ -39,7 +39,7 @@ func (cfg *apiConfig) resetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	cfg.fileserverHits.Store(0)
-	_, err = w.Write([]byte(fmt.Sprintf("Hits: %v", cfg.fileserverHits.Load())))
+	_, err = w.Write([]byte(fmt.Sprintf("Hits: %v, Database has been reset", cfg.fileserverHits.Load())))
 	if err != nil {
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		return

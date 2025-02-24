@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/JLee871/chirpy/internal/auth"
+	"github.com/JLee871/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
@@ -16,9 +18,10 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
-func (c *apiConfig) userHandler(w http.ResponseWriter, r *http.Request) {
+func (c *apiConfig) postuserHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	type response struct {
@@ -33,7 +36,13 @@ func (c *apiConfig) userHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbUser, err := c.databaseQueries.CreateUser(r.Context(), params.Email)
+	hashedPW, err := auth.HashPassword(params.Password)
+	if err != nil {
+		errorResp(w, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+
+	dbUser, err := c.databaseQueries.CreateUser(r.Context(), database.CreateUserParams{Email: params.Email, HashedPassword: hashedPW})
 	if err != nil {
 		errorResp(w, http.StatusBadRequest, "Could not create user", err)
 		return
