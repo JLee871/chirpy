@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const minLength = 6
+const minLength = 1
 
 func HashPassword(password string) (string, error) {
 	if len(password) < minLength {

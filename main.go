@@ -16,6 +16,7 @@ type apiConfig struct {
 	fileserverHits  atomic.Int32
 	databaseQueries *database.Queries
 	platform        string
+	tokenSecret     string
 }
 
 func readyHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +52,7 @@ func main() {
 	apiCfg := apiConfig{}
 	apiCfg.databaseQueries = dbQueries
 	apiCfg.platform = os.Getenv("PLATFORM")
+	apiCfg.tokenSecret = os.Getenv("SECRET")
 
 	sH := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
 	serverMutex.Handle("/app/", apiCfg.middlewareMetricsInc(sH))
@@ -58,16 +60,22 @@ func main() {
 	serverMutex.HandleFunc("GET /api/healthz", readyHandler)
 
 	serverMutex.HandleFunc("GET /admin/metrics", apiCfg.countHandler)
-
 	serverMutex.HandleFunc("POST /admin/reset", apiCfg.resetHandler)
 
 	serverMutex.HandleFunc("POST /api/chirps", apiCfg.postchirpHandler)
 	serverMutex.HandleFunc("GET /api/chirps", apiCfg.getallchirpsHandler)
 	serverMutex.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getsinglechirpHandler)
+	serverMutex.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.delchirpHandler)
 
 	serverMutex.HandleFunc("POST /api/users", apiCfg.postuserHandler)
+	serverMutex.HandleFunc("PUT /api/users", apiCfg.putuserHandler)
 
+	// Authentication: handlers found in login.go file
 	serverMutex.HandleFunc("POST /api/login", apiCfg.loginHandler)
+	serverMutex.HandleFunc("POST /api/refresh", apiCfg.refreshHandler)
+	serverMutex.HandleFunc("POST /api/revoke", apiCfg.revokeHandler)
+
+	serverMutex.HandleFunc("POST /api/polka/webhooks", apiCfg.polkawebhookHandler)
 
 	log.Fatal(server.ListenAndServe())
 }
